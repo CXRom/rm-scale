@@ -1,7 +1,9 @@
 idf_component_register(
   SRCS 
-    "i2c_oled_example_main.c"
-  
+    "main.c"
+    "hx711_handler.c"
+    "display_handler.c"
+
   INCLUDE_DIRS 
     "."
 )

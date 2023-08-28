@@ -1,16 +1,4 @@
 dependencies:
-  espressif/esp_lcd_sh1107:
-    component_hash: 9cc00a4d066e3e1d120fd2006d30612766488379b820804092a9bfedb3c1f93c
-    source:
-      service_url: https://api.components.espressif.com/
-      type: service
-    version: 1.1.0
-  espressif/esp_lvgl_port:
-    component_hash: 7a935bb438627f76cb2c28819b1c88489a45abbc92dc4634f5bb034c0cb0bf76
-    source:
-      service_url: https://api.components.espressif.com/
-      type: service
-    version: 1.2.0~1
   espressif/ssd1306:
     component_hash: bb9d18fd14ba2b11ca7ce426fc059e3ae7c44e7635e3a62eeae9e44c2ca0db46
     source:
@@ -22,12 +10,6 @@ dependencies:
     source:
       type: idf
     version: 5.1.0
-  lvgl/lvgl:
-    component_hash: 2567762b19953712ee38789ad8f8de57ad1f6e39283adefbbfc7184ffe662831
-    source:
-      service_url: https://api.components.espressif.com/
-      type: service
-    version: 8.2.0
-manifest_hash: 4c5908e9bb83567691b04ccc471e88cd2bf9f6ff8d907f81e463dc3ddfd8c56e
+manifest_hash: 09aa61938984069f5822549bbd93517d68481e1217ab60874cee4775da9266cc
 target: esp32c3
 version: 1.0.0

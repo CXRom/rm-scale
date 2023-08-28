@@ -14,5 +14,9 @@
   "idf.portWin": "COM4",
   "idf.pythonBinPathWin": "C:\\Users\\romme\\.espressif\\python_env\\idf5.1_py3.11_env\\Scripts\\python.exe",
   "idf.toolsPathWin": "C:\\Users\\romme\\.espressif",
-  "idf.flashType": "UART"
+  "idf.flashType": "UART",
+  "files.associations": {
+    "ssd1306_handler.h": "c",
+    "ssd1306.h": "c"
+  }
 }
