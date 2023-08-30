@@ -42,8 +42,6 @@ void hx_task(void *pvParameters)
       continue;
     }
 
-    ESP_LOGI(TAG_SCALE, "%" PRIi32, hx_value);
-
     char message[20];
     sprintf(message, "%" PRIi32, hx_value);
     display_message(message);
