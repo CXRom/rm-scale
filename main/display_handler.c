@@ -21,6 +21,6 @@ void display_message(char *message)
 
   ssd1306_clear_screen(display_handler, 0x00);
   ssd1306_draw_string(display_handler, 0, 0, (const uint8_t *)title_str, 16, 1);
-  ssd1306_draw_string(display_handler, 0, 20, (const uint8_t *)value_str, 12, 1);
+  ssd1306_draw_string(display_handler, 0, 20, (const uint8_t *)value_str, 16, 1);
   ssd1306_refresh_gram(display_handler);
 }
