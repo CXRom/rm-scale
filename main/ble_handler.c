@@ -21,13 +21,37 @@ void ble_app_advertise(void);
 // static TimerHandle_t timer_handler;
 
 // Service UUIDs
-#define DEVICE_INFO_SERVICE_UUID 0x180A
-#define BATTERY_SERVICE_UUID 0x180F
+#define COMMAND_DATA_SERVICE_UUID 0x1800
+// #define BATTERY_SERVICE_UUID 0x180F
 // Characteristic UUIDs
-#define DEVICE_INFO_MANUFACTURER_NAME_UUID 0x2A29
-#define BATERY_LEVEL_UUID 0x2A19
+#define COMMAND_REQUEST_UUID 0x36, 0xEB, 0xF1, 0x6B, 0x68, 0x4B, 0xEE, 0x11, 0xC1, 0xBA, 0xAC, 0x68, 0x4D, 0x57, 0x34, 0x87
+#define COMMAND_RESPONSE_UUID 0xF0, 0x50, 0x35, 0xA4, 0x4B, 0x68, 0x11, 0xEE, 0xA3, 0xE2, 0xD5, 0xAE, 0x87, 0x34, 0x57, 0x4D
+// #define BATERY_LEVEL_UUID 0x2A19
 
 const TickType_t delay_ticks = 500 / portTICK_PERIOD_MS;
+
+command_request_handler *command_handler;
+
+static const struct ble_gatt_svc_def gatt_svr_svcs[] = {
+    {
+        .type = BLE_GATT_SVC_TYPE_PRIMARY,
+        .uuid = BLE_UUID16_DECLARE(COMMAND_DATA_SERVICE_UUID),
+        .characteristics = (struct ble_gatt_chr_def[]){
+            {
+                .uuid = BLE_UUID128_DECLARE(COMMAND_REQUEST_UUID), // Manufacturer Name String
+                .flags = BLE_GATT_CHR_F_WRITE,
+                .access_cb = command_request_cb,
+            },
+            {
+                .uuid = BLE_UUID128_DECLARE(COMMAND_RESPONSE_UUID), // Model Number String
+                .flags = BLE_GATT_CHR_F_WRITE,
+                .access_cb = command_response_cb,
+            },
+            {0}, /* No more characteristics in this service */
+        },
+    },
+    {0}, /* No more services */
+};
 
 static int ble_gap_event(struct ble_gap_event *event, void *arg)
 {
@@ -87,69 +111,30 @@ void host_task(void *param)
   nimble_port_run();
 }
 
-static int device_info_write_callback(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg)
+static int command_request_cb(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg)
 {
-  const char *my_string = (const char *)ctxt->om->om_data;
-  if (strcmp(my_string, "init") == 0)
-  {
-    gpio_set_level(12, 0);
-    // Sleep for 500 milliseconds
-    vTaskDelay(delay_ticks);
-    // Set GPIO 12 to low
-    gpio_set_level(12, 1);
-  }
+  const char *data = (const char *)ctxt->om->om_data;
 
-  ESP_LOGI("GATT", "Incoming message: %.*s", ctxt->om->om_len, ctxt->om->om_data);
-  return 0;
+  return command_handler(data);
+
+    // if (strcmp(my_string, "init") == 0)
+  // {
+  //   gpio_set_level(12, 0);
+  //   // Sleep for 500 milliseconds
+  //   vTaskDelay(delay_ticks);
+  //   // Set GPIO 12 to low
+  //   gpio_set_level(12, 1);
+  // }
+
+  // ESP_LOGI("GATT", "Incoming message: %.*s", ctxt->om->om_len, ctxt->om->om_data);
+  // return 0;
 }
 
-static int battery_level_callback(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg)
+static int command_response_cb(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg)
 {
   uint8_t battery_level = 80;
   return os_mbuf_append(ctxt->om, &battery_level, sizeof(battery_level));
 }
-
-static int device_info_callback(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg)
-{
-  ESP_LOGI("GATT", "value of arg: %d", *(uint8_t *)arg);
-
-  const char *value = "Rocket Monsters Scale";
-  return os_mbuf_append(ctxt->om, value, strlen(value));
-}
-
-static const struct ble_gatt_svc_def gatt_svr_svcs[] = {
-    {
-        .type = BLE_GATT_SVC_TYPE_PRIMARY,
-        .uuid = BLE_UUID16_DECLARE(DEVICE_INFO_SERVICE_UUID),
-        .characteristics = (struct ble_gatt_chr_def[]){
-            {
-                .uuid = BLE_UUID16_DECLARE(DEVICE_INFO_MANUFACTURER_NAME_UUID), // Manufacturer Name String
-                .flags = BLE_GATT_CHR_F_READ,
-                .access_cb = device_info_callback,
-                .arg = (void *)0x01,
-            },
-            {
-                .uuid = BLE_UUID128_DECLARE(0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF), // Model Number String
-                .flags = BLE_GATT_CHR_F_WRITE,
-                .access_cb = device_info_write_callback,
-            },
-            {0}, /* No more characteristics in this service */
-        },
-    },
-    {
-        .type = BLE_GATT_SVC_TYPE_PRIMARY,
-        .uuid = BLE_UUID16_DECLARE(BATTERY_SERVICE_UUID),
-        .characteristics = (struct ble_gatt_chr_def[]){
-            {
-                .uuid = BLE_UUID16_DECLARE(BATERY_LEVEL_UUID),
-                .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_NOTIFY,
-                .access_cb = battery_level_callback,
-            },
-            {0}, /* No more characteristics in this service */
-        },
-    },
-    {0}, /* No more services */
-};
 
 void ble_app_on_sync(void)
 {
@@ -188,4 +173,9 @@ void ble_init()
   // timer_handler = xTimerCreate("timer_handler", pdMS_TO_TICKS(1000), pdTRUE, NULL, update_battery_status);
 
   nimble_port_freertos_init(host_task);
+}
+
+void ble_config_request_handler(command_request_handler *handler)
+{
+  command_handler = handler;
 }

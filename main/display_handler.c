@@ -1,12 +1,15 @@
+#include "display_handler.h"
+
 #include "driver/i2c.h"
 #include "ssd1306.h"
 
-#include "display_handler.h"
+#define DISPLAY_I2C_ADDR 0x3C
 
 static ssd1306_handle_t display_handler = NULL;
 
-void display_init(i2c_port_t i2c_master)
+void display_init(i2c_port_t *i2c_master_ptr)
 {
+  i2c_port_t i2c_master = *i2c_master_ptr;
   display_handler = ssd1306_create(i2c_master, DISPLAY_I2C_ADDR);
   ssd1306_refresh_gram(display_handler);
   ssd1306_clear_screen(display_handler, 0x00);
