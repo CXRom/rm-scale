@@ -19,6 +19,7 @@
     "ssd1306_handler.h": "c",
     "ssd1306.h": "c",
     "esp_nimble_hci.h": "c",
-    "timers.h": "c"
+    "timers.h": "c",
+    "ble_handler.h": "c"
   }
 }

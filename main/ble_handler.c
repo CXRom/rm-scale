@@ -8,6 +8,9 @@
 #include "host/ble_hs.h"
 #include "services/gap/ble_svc_gap.h"
 #include "services/gatt/ble_svc_gatt.h"
+#include <string.h>
+#include "driver/gpio.h"
+#include "freertos/task.h"
 
 static const char *TAG_BLE = "BLE_HANDLER";
 
@@ -23,6 +26,8 @@ void ble_app_advertise(void);
 // Characteristic UUIDs
 #define DEVICE_INFO_MANUFACTURER_NAME_UUID 0x2A29
 #define BATERY_LEVEL_UUID 0x2A19
+
+const TickType_t delay_ticks = 500 / portTICK_PERIOD_MS;
 
 static int ble_gap_event(struct ble_gap_event *event, void *arg)
 {
@@ -84,6 +89,16 @@ void host_task(void *param)
 
 static int device_info_write_callback(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg)
 {
+  const char *my_string = (const char *)ctxt->om->om_data;
+  if (strcmp(my_string, "init") == 0)
+  {
+    gpio_set_level(12, 0);
+    // Sleep for 500 milliseconds
+    vTaskDelay(delay_ticks);
+    // Set GPIO 12 to low
+    gpio_set_level(12, 1);
+  }
+
   ESP_LOGI("GATT", "Incoming message: %.*s", ctxt->om->om_len, ctxt->om->om_data);
   return 0;
 }

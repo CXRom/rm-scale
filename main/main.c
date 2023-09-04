@@ -4,6 +4,7 @@
 #include "freertos/timers.h"
 #include "esp_timer.h"
 #include "driver/i2c.h"
+#include "driver/gpio.h"
 #include "esp_err.h"
 #include "esp_log.h"
 
@@ -52,6 +53,10 @@ void app_main(void)
 
     ESP_LOGI(TAG, "Initialize BLE");
     ble_init();
+
+    esp_rom_gpio_pad_select_gpio(12);
+    gpio_set_direction(12, GPIO_MODE_OUTPUT);
+    gpio_set_level(12, 1);
 
     xTaskCreate(hx_task, "hx_task", configMINIMAL_STACK_SIZE * 5, NULL, 5, NULL);
 }
