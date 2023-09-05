@@ -36,7 +36,7 @@ int command_request_cb(char *message)
 
 void app_main(void)
 {
-    i2c_init(&i2c_conf);
+    i2c_init(&i2c_conf, I2C_MASTER);
     display_init(&i2c_conf);
 
     ble_init();

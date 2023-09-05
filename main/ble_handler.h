@@ -1,6 +1,8 @@
 #ifndef __BLE_HANDLER_H__
 #define __BLE_HANDLER_H__
 
+#include <stdint.h>
+
 typedef int (*command_request_handler)(const char *);
 
 void ble_init();
