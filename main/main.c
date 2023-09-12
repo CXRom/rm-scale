@@ -7,10 +7,12 @@
 #include "driver/gpio.h"
 #include "esp_err.h"
 #include "esp_log.h"
+#include <string.h>
 
-#include "ble_handler.h"
-#include "hx711_handler.h"
 #include "display_handler.h"
+#include "hx711_handler.h"
+#include "ble_handler.h"
+#include "command_handler.h"
 
 const char *TAG = "rm.scale";
 
@@ -18,21 +20,6 @@ const char *TAG = "rm.scale";
 #define I2C_MAIN_SPEED (400 * 1000)
 #define I2C_MAIN_SDA 4
 #define I2C_MAIN_SCL 5
-
-// uint8_t battery_level = 100;
-// void update_battery_status(TimerHandle_t xTimer)
-// {
-//     if (battery_level > 0)
-//     {
-//         battery_level--;
-//     }
-//     else
-//     {
-//         battery_level = 100;
-//     }
-
-//     ESP_LOGI(TAG, "Battery level: %d", battery_level);
-// }
 
 void app_main(void)
 {
@@ -52,7 +39,7 @@ void app_main(void)
     display_init(I2C_MASTER);
 
     ESP_LOGI(TAG, "Initialize BLE");
-    ble_init();
+    ble_init(handle_command);
 
     esp_rom_gpio_pad_select_gpio(12);
     gpio_set_direction(12, GPIO_MODE_OUTPUT);

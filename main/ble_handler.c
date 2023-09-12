@@ -16,18 +16,14 @@ static const char *TAG_BLE = "BLE_HANDLER";
 
 #define BLE_DEVICE_NAME "RM Scale"
 uint8_t ble_addr_type;
+CommandHandler command_main_handler;
 void ble_app_advertise(void);
 
-// static TimerHandle_t timer_handler;
-
 // Service UUIDs
-#define DEVICE_INFO_SERVICE_UUID 0x180A
-#define BATTERY_SERVICE_UUID 0x180F
+#define GENERIC_ACCESS_SERVICE_UUID 0x1800
 // Characteristic UUIDs
 #define DEVICE_INFO_MANUFACTURER_NAME_UUID 0x2A29
-#define BATERY_LEVEL_UUID 0x2A19
-
-const TickType_t delay_ticks = 500 / portTICK_PERIOD_MS;
+#define DEVICE_DISPATCH_COMMAND_UUID 0x3000
 
 static int ble_gap_event(struct ble_gap_event *event, void *arg)
 {
@@ -87,32 +83,17 @@ void host_task(void *param)
   nimble_port_run();
 }
 
-static int device_info_write_callback(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg)
+static int command_dispatch_callback(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg)
 {
-  const char *my_string = (const char *)ctxt->om->om_data;
-  if (strcmp(my_string, "init") == 0)
-  {
-    gpio_set_level(12, 0);
-    // Sleep for 500 milliseconds
-    vTaskDelay(delay_ticks);
-    // Set GPIO 12 to low
-    gpio_set_level(12, 1);
-  }
-
-  ESP_LOGI("GATT", "Incoming message: %.*s", ctxt->om->om_len, ctxt->om->om_data);
+  const char *command = (const char *)ctxt->om->om_data;
+  ESP_LOGI("GATT", "dispatch command *%s*", command);
+  command_main_handler(command);
   return 0;
-}
-
-static int battery_level_callback(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg)
-{
-  uint8_t battery_level = 80;
-  return os_mbuf_append(ctxt->om, &battery_level, sizeof(battery_level));
 }
 
 static int device_info_callback(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg)
 {
-  ESP_LOGI("GATT", "value of arg: %d", *(uint8_t *)arg);
-
+  ESP_LOGI("GATT", "dispatch device info");
   const char *value = "Rocket Monsters Scale";
   return os_mbuf_append(ctxt->om, value, strlen(value));
 }
@@ -120,30 +101,18 @@ static int device_info_callback(uint16_t conn_handle, uint16_t attr_handle, stru
 static const struct ble_gatt_svc_def gatt_svr_svcs[] = {
     {
         .type = BLE_GATT_SVC_TYPE_PRIMARY,
-        .uuid = BLE_UUID16_DECLARE(DEVICE_INFO_SERVICE_UUID),
+        .uuid = BLE_UUID16_DECLARE(GENERIC_ACCESS_SERVICE_UUID),
         .characteristics = (struct ble_gatt_chr_def[]){
             {
                 .uuid = BLE_UUID16_DECLARE(DEVICE_INFO_MANUFACTURER_NAME_UUID), // Manufacturer Name String
                 .flags = BLE_GATT_CHR_F_READ,
                 .access_cb = device_info_callback,
-                .arg = (void *)0x01,
             },
+            // Command dispatcher
             {
-                .uuid = BLE_UUID128_DECLARE(0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF), // Model Number String
+                .uuid = BLE_UUID16_DECLARE(DEVICE_DISPATCH_COMMAND_UUID),
                 .flags = BLE_GATT_CHR_F_WRITE,
-                .access_cb = device_info_write_callback,
-            },
-            {0}, /* No more characteristics in this service */
-        },
-    },
-    {
-        .type = BLE_GATT_SVC_TYPE_PRIMARY,
-        .uuid = BLE_UUID16_DECLARE(BATTERY_SERVICE_UUID),
-        .characteristics = (struct ble_gatt_chr_def[]){
-            {
-                .uuid = BLE_UUID16_DECLARE(BATERY_LEVEL_UUID),
-                .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_NOTIFY,
-                .access_cb = battery_level_callback,
+                .access_cb = command_dispatch_callback,
             },
             {0}, /* No more characteristics in this service */
         },
@@ -157,10 +126,11 @@ void ble_app_on_sync(void)
   ble_app_advertise();
 }
 
-void ble_init()
+void ble_init(CommandHandler command_handler)
 {
   ESP_LOGI(TAG_BLE, "Initialize BLE");
   /* Initialize NVS — it is used to store PHY calibration data */
+  command_main_handler = command_handler;
   esp_err_t ret = nvs_flash_init();
   if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
   {
@@ -184,8 +154,6 @@ void ble_init()
 
   ble_gatts_count_cfg(gatt_svr_svcs);
   ble_gatts_add_svcs(gatt_svr_svcs);
-
-  // timer_handler = xTimerCreate("timer_handler", pdMS_TO_TICKS(1000), pdTRUE, NULL, update_battery_status);
 
   nimble_port_freertos_init(host_task);
 }

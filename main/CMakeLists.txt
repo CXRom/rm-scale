@@ -4,6 +4,7 @@ idf_component_register(
     "ble_handler.c"
     "hx711_handler.c"
     "display_handler.c"
+    "command_handler.c"
 
   INCLUDE_DIRS 
     "."
